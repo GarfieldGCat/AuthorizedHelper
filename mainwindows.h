@@ -28,6 +28,8 @@ private:
     void signalConnection();
     //care function
     void careBaby();
+    //support functon
+    QString catStringList(const QStringList *psl);
     //layout Obj
     //main
     QHBoxLayout *phlMain;
@@ -70,13 +72,15 @@ private:
     QTextEdit *pteTextLog;
 
     //GraphObj
-    QGraphicsTextItem *pgtiAuthrorizedTitle;
     QGraphicsTextItem *pgtiAuthrorizedDate;
     QGraphicsTextItem *pgtiAuthrorizedContent;
     QGraphicsTextItem *pgtiAuthrorizedCompany;
-    QList<QGraphicsPixmapItem> *pgpilAuthroizedLogoList;
+    //QList<QGraphicsPixmapItem> *pgpilAuthroizedLogoList;
 
     //Data
+    QString strObject;
+    QString strBrand;
+    QString strContent;
     QStringList *pslObjectList;
     QStringList *pslBrandList;
     QStringList *pslContentList;
@@ -96,16 +100,18 @@ private:
 
     //Template
     QPixmap *ppmTemplate;
+
 public:
     MainWindows(QWidget *parent = 0);
     ~MainWindows();
+    //Image Output
+    void generateImage();
 
 signals:
     void sendLog(QString log);
 
 public slots:
     void updateGraphicsContent();
-
     void fontTypeChange(QFont font);
     void fontSizeChange(int size);
     void brandChange();
@@ -117,8 +123,9 @@ public slots:
     void authrorizerChange(QString content);
     void outputPathChange(QString content);
     void openPath();
-    void generateImage();
-    void showLog(QString log);
+    void generateAllImage();
+    void batchModeChange(bool flag);
+    void printLog(QString log);
 };
 
 #endif // MAINWINDOWS_H
