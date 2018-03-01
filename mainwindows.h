@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QGraphicsTextItem>
 #include <QFont>
+#include <QSettings>
 #include <QList>
 
 class MainWindows : public QMainWindow
@@ -30,6 +31,8 @@ private:
     void careBaby();
     //support functon
     QString catStringList(const QStringList *psl);
+    void loadSetting();
+    void saveSetting();
     //layout Obj
     //main
     QHBoxLayout *phlMain;
@@ -101,6 +104,8 @@ private:
     //Template
     QPixmap *ppmTemplate;
 
+    //Configuation
+    QSettings *psIniFile;
 public:
     MainWindows(QWidget *parent = 0);
     ~MainWindows();

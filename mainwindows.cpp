@@ -421,9 +421,26 @@ QString MainWindows::catStringList(const QStringList *psl)
     return res;
 }
 
+void MainWindows::loadSetting()
+{
+    psIniFile = new QSettings(QDir::currentPath()+"/Settings.ini",QSettings::IniFormat);
+    outPath = psIniFile->value("MainSet/OutPath", QDir::currentPath()).toString();
+    delete psIniFile;
+}
+
+void MainWindows::saveSetting()
+{
+    psIniFile = new QSettings(QDir::currentPath()+"/Settings.ini",QSettings::IniFormat);
+    psIniFile->beginGroup("MainSet");
+    psIniFile->setValue("OutPath", outPath);
+    psIniFile->endGroup();
+    delete psIniFile;
+}
+
 MainWindows::MainWindows(QWidget *parent)
     : QMainWindow(parent)
 {
+    loadSetting();
     QWidget *central = new QWidget();
     // initialize windows
     // set window size
@@ -437,7 +454,7 @@ MainWindows::MainWindows(QWidget *parent)
     signalConnection();
 
     //set defualt output folder
-    pleOutputPath->setText(QDir::currentPath());
+    pleOutputPath->setText(outPath);
 
     emit sendLog(tr("Initialize completed."));
     careBaby();
@@ -445,7 +462,7 @@ MainWindows::MainWindows(QWidget *parent)
 
 MainWindows::~MainWindows()
 {
-
+    saveSetting();
 }
 
 void MainWindows::updateGraphicsContent()
