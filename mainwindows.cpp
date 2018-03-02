@@ -100,7 +100,7 @@ void MainWindows::createSettingPage()
     plaFont->setFixedWidth(LABEL_SIZE);
     pfcFontType = new QFontComboBox;
     psbFontSize = new QSpinBox;
-    psbFontSize->setMaximum(999);
+    psbFontSize->setMaximum(200);
     pcbIsKeyBold = new QCheckBox(tr("&Bolds"));
     pcbIsUnderline = new QCheckBox(tr("&Underline"));
     pcbIsKeyBold->setChecked(true);
@@ -113,11 +113,6 @@ void MainWindows::createSettingPage()
     phlFontSet->addLayout(pvlCheckBoxLay);
 
     //setting default font
-    pfTitleFont = new QFont("微软雅黑");
-    pfTitleFont->setLetterSpacing(QFont::AbsoluteSpacing, 40);
-    pfTitleFont->setBold(true);
-    pfTitleFont->setPixelSize(80);
-
     pfGlobalFont = new QFont("微软雅黑",40);
     psbFontSize->setValue(40);
     pfcFontType->setCurrentFont(*pfGlobalFont);
@@ -159,15 +154,21 @@ void MainWindows::createSettingPage()
 
     //logos
     pslLogosList = new QStringList;
+    pilLogoSizeList = new QList<int>;
     QVBoxLayout *pvlOpenBtnLay = new QVBoxLayout;
     QLabel *plaLogo = new QLabel(tr("Logos:"));
     plaLogo->setFixedWidth(LABEL_SIZE);
     plwLogoList = new QListWidget;
     ppbOpenLogos = new QPushButton(tr("&Open"));
     ppbRemoveLogo = new QPushButton(tr("Remove"));
+    psbLogoSize = new QSpinBox;
+    psbLogoSize->setMaximum(999);
+    psbLogoSize->setMinimum(20);
+    psbLogoSize->setValue(200);
     pvlOpenBtnLay->addWidget(ppbOpenLogos);
     pvlOpenBtnLay->addWidget(ppbRemoveLogo);
-    plwLogoList->setMaximumHeight(55);
+    pvlOpenBtnLay->addWidget(psbLogoSize);
+    plwLogoList->setMaximumHeight(70);
     phlLogoSet->addWidget(plaLogo);
     phlLogoSet->addWidget(plwLogoList);
     phlLogoSet->addLayout(pvlOpenBtnLay);
@@ -226,6 +227,8 @@ void MainWindows::signalConnection()
     connect(pteObjectEdit, SIGNAL(textChanged()), this, SLOT(objectChange()));
     connect(pteContentEdit, SIGNAL(textChanged()), this, SLOT(contentChange()));
     connect(ppbOpenLogos, SIGNAL(clicked(bool)), this, SLOT(openLogos()));
+    connect(plwLogoList, SIGNAL(currentRowChanged(int)), this, SLOT(currentLogoChange(int)));
+    connect(psbLogoSize, SIGNAL(valueChanged(int)), this, SLOT(logoSizeChange(int)));
     connect(ppbRemoveLogo, SIGNAL(clicked(bool)), this, SLOT(removeLogo()));
     connect(pdeStartDate,SIGNAL(dateChanged(QDate)), this, SLOT(dateChange()));
     connect(pdeEndDate, SIGNAL(dateChanged(QDate)), this, SLOT(dateChange()));
@@ -384,7 +387,7 @@ void MainWindows::careBaby()
     };
 
     //加班
-    if(time.time().hour() >= 18 && isFestival || (rand() % 100 + 1) >= 50)
+    if(time.time().hour() >= 18 && isFestival || time.time().hour() >= 18 && (rand() % 100 + 1) >= 50)
     {
         int n = rand()%5;
         if( isFestival )
@@ -423,18 +426,17 @@ QString MainWindows::catStringList(const QStringList *psl)
 
 void MainWindows::loadSetting()
 {
-    psIniFile = new QSettings(QDir::currentPath()+"/Settings.ini",QSettings::IniFormat);
+    psIniFile = new QSettings(QDir::currentPath()+"/Settings.ini",QSettings::IniFormat,this);
     outPath = psIniFile->value("MainSet/OutPath", QDir::currentPath()).toString();
-    delete psIniFile;
+    logoPath = psIniFile->value("MainSet/LogoPath", QDir::currentPath()).toString();
 }
 
 void MainWindows::saveSetting()
 {
-    psIniFile = new QSettings(QDir::currentPath()+"/Settings.ini",QSettings::IniFormat);
     psIniFile->beginGroup("MainSet");
     psIniFile->setValue("OutPath", outPath);
+    psIniFile->setValue("LogoPath", logoPath);
     psIniFile->endGroup();
-    delete psIniFile;
 }
 
 MainWindows::MainWindows(QWidget *parent)
@@ -463,6 +465,27 @@ MainWindows::MainWindows(QWidget *parent)
 MainWindows::~MainWindows()
 {
     saveSetting();
+
+    //Data
+    delete pslObjectList;
+    delete pslBrandList;
+    delete pslContentList;
+    delete pslLogosList;
+    delete pilLogoSizeList;
+
+    //Font
+    delete pfGlobalFont;
+    delete pfObjectFont;
+    delete pfContentFont;
+    delete pfBrandFont;
+    delete pfDateFont;
+    delete pfAuthrorizerFont;
+
+    //Template
+    delete ppmTemplate;
+
+    //Settings
+    delete psIniFile;
 }
 
 void MainWindows::updateGraphicsContent()
@@ -475,8 +498,9 @@ void MainWindows::updateGraphicsContent()
     //for html style
     QString checkStyle;
     QString checkStyleEnd;
-    QString logoStyle("<img height=\"200\" align=\"middle\" src=\"");
-    QString logoStyleEnd("\">");
+    //cat for size, whole <img height="[size]" align="middle" src="[src]"\>
+    QString logoStyle("<img height=\"%1\" align=\"middle\" src=\"");
+    const QString logoStyleEnd("\">");
 
     if( pcbIsKeyBold->isChecked() )
     {
@@ -497,27 +521,33 @@ void MainWindows::updateGraphicsContent()
 
     textBrand = checkStyle + strBrand + checkStyleEnd;
 
+    //Logo
     if( !pslLogosList->empty() )
     {
         textLogo = QString("并在授权范围内使用&nbsp;&nbsp;");
 
-        for(QString path : *pslLogosList)
-            textLogo += logoStyle + path + logoStyleEnd + "&nbsp;&nbsp;";
+        for(int i = 0; i < pslLogosList->size(); i++)
+            textLogo += logoStyle.arg(pilLogoSizeList->at(i)) + pslLogosList->at(i) + logoStyleEnd + "&nbsp;&nbsp;";
 
         textLogo += QString("&nbsp;&nbsp;的商标。");
     }
 
+    //Date
     QDate Start = pdeStartDate->date();
     QDate End = pdeEndDate->date();
     textDate = QString("此授权有效期自 %1%2年%3月%4日%5 到 %6%7年%8月%9日%10。")
             .arg(checkStyle).arg(Start.year()).arg(Start.month()).arg(Start.day()).arg(checkStyleEnd)
             .arg(checkStyle).arg(End.year()).arg(End.month()).arg(End.day()).arg(checkStyleEnd);
+    QString strEmtpySapceForDate;
+    for( int i = 4; i >= textDate.length()-58; i-- )
+        strEmtpySapceForDate += "&nbsp;";
+    textDate = strEmtpySapceForDate + textDate;
 
     //[!] BUG
     //When using chinese pinyin for long input, it will raise a abnormal issue, consume to many CPU times. Don't know why yet.
     //but problem located to QString() function.
     pgtiAuthrorizedContent->setHtml(
-                QString("<p style=\"text-indent:105px;\">兹授权 %1 %2 销售我司代理的 %3 品牌(系列)产品，于授权范围内负责售后等事宜。%4</p><br><p style=\"text-indent:105px;\">%5</p>")
+                QString("<p style=\"text-indent:105px;\">兹授权 %1 %2 销售我司代理的 %3 品牌(系列)产品，于授权范围内负责售后等事宜。%4</p><br><p style=\"text-indent:0px;\">%5</p>")
                 .arg(textObject).arg(textContent).arg(textBrand).arg(textLogo).arg(textDate)
                 );
 }
@@ -715,9 +745,14 @@ void MainWindows::openLogos()
     QStringList files = QFileDialog::getOpenFileNames(
                               this,
                               tr("Select one or more files to open"),
-                              "/",
+                              logoPath,
                               tr("Images (*.png *.gif *.jpg *.bmp)"));
 
+    if(!files.empty())
+    {
+        logoPath = files.first();
+        logoPath.chop(logoPath.length() - logoPath.lastIndexOf('/'));
+    }
     int listcnt = plwLogoList->count();
 
     for(QString str : files)
@@ -735,10 +770,25 @@ void MainWindows::openLogos()
         {
             plwLogoList->addItem(str);
             pslLogosList->push_back(str);
+            pilLogoSizeList->push_back(200);    //logo Default Size
         }
     }
 
     updateGraphicsContent();
+}
+
+void MainWindows::currentLogoChange(int r)
+{
+    psbLogoSize->setValue( pilLogoSizeList->at(r) );
+}
+
+void MainWindows::logoSizeChange(int size)
+{
+    if(plwLogoList->currentRow() >= 0)
+    {
+        (*pilLogoSizeList)[plwLogoList->currentRow()] = size;
+        updateGraphicsContent();
+    }
 }
 
 void MainWindows::removeLogo()
@@ -748,6 +798,7 @@ void MainWindows::removeLogo()
     {
         pslLogosList->removeAt(currentRow);
         delete plwLogoList->takeItem(currentRow);
+        pilLogoSizeList->removeAt(currentRow);
     }
 
     updateGraphicsContent();

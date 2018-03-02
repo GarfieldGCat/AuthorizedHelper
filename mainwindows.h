@@ -64,6 +64,7 @@ private:
     QListWidget *plwLogoList;
     QPushButton *ppbOpenLogos;
     QPushButton *ppbRemoveLogo;
+    QSpinBox *psbLogoSize;
     QDateEdit *pdeStartDate;
     QDateEdit *pdeEndDate;
     QLineEdit *pleAuthrorizer;
@@ -88,10 +89,10 @@ private:
     QStringList *pslBrandList;
     QStringList *pslContentList;
     QStringList *pslLogosList;
+    QList<int> *pilLogoSizeList;
 
     //Font
     QFont *pfGlobalFont;
-    QFont *pfTitleFont;
     QFont *pfObjectFont;
     QFont *pfContentFont;
     QFont *pfBrandFont;
@@ -100,6 +101,7 @@ private:
 
     //PATH
     QString outPath;
+    QString logoPath;
 
     //Template
     QPixmap *ppmTemplate;
@@ -123,6 +125,8 @@ public slots:
     void objectChange();
     void contentChange();
     void openLogos();
+    void currentLogoChange(int r);
+    void logoSizeChange(int size);
     void removeLogo();
     void dateChange();
     void authrorizerChange(QString content);
