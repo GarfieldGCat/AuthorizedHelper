@@ -17,6 +17,8 @@
 #include <QFont>
 #include <QSettings>
 #include <QList>
+#include <QComboBox>
+#include "templateloader.h"
 
 class MainWindows : public QMainWindow
 {
@@ -58,6 +60,7 @@ private:
     QSpinBox *psbFontSize;
     QCheckBox *pcbIsKeyBold;
     QCheckBox *pcbIsUnderline;
+    QComboBox *pcbTemplateBox;
     QTextEdit *pteBrandEdit;
     QTextEdit *pteObjectEdit;
     QTextEdit *pteContentEdit;
@@ -76,7 +79,6 @@ private:
     QTextEdit *pteTextLog;
 
     //GraphObj
-    QGraphicsTextItem *pgtiAuthrorizedDate;
     QGraphicsTextItem *pgtiAuthrorizedContent;
     QGraphicsTextItem *pgtiAuthrorizedCompany;
     //QList<QGraphicsPixmapItem> *pgpilAuthroizedLogoList;
@@ -108,6 +110,10 @@ private:
 
     //Configuation
     QSettings *psIniFile;
+    TemplateLoader TmpLoader;
+    const TextTemplate *pttTemplate;
+    bool isModifyMode;
+
 public:
     MainWindows(QWidget *parent = 0);
     ~MainWindows();
@@ -135,6 +141,8 @@ public slots:
     void generateAllImage();
     void batchModeChange(bool flag);
     void printLog(QString log);
+    void modifyModeChange();
+    void templateChange();
 };
 
 #endif // MAINWINDOWS_H

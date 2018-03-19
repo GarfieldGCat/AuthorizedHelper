@@ -12,6 +12,7 @@
 #include <QPainter>
 #include <cstdlib>
 #include <QCoreApplication>
+#include <QMessageBox>
 
 const int MAINWND_SIZE_W = 900;
 const int MAINWND_SIZE_H = 586;
@@ -78,11 +79,7 @@ void MainWindows::createGraphScene()
     pgtiAuthrorizedContent->setTextWidth(IMAGE_SIZE_W*0.7);
     pgtiAuthrorizedContent->setPos(IMAGE_SIZE_W*0.15, IMAGE_SIZE_H*0.33);
     pgsScene->addItem(pgtiAuthrorizedContent);
-    pgtiAuthrorizedContent->setTextInteractionFlags(Qt::TextEditorInteraction);
-    //set date
-    pgtiAuthrorizedDate = new QGraphicsTextItem;
-    pgtiAuthrorizedDate->setFont(*pfDateFont);
-    pgtiAuthrorizedDate->setTextWidth(IMAGE_SIZE_W*0.7);
+    //pgtiAuthrorizedContent->setTextInteractionFlags(Qt::TextEditorInteraction);
 
     //set authrorizer
     pgtiAuthrorizedCompany = new QGraphicsTextItem;
@@ -105,12 +102,16 @@ void MainWindows::createSettingPage()
     pcbIsUnderline = new QCheckBox(tr("&Underline"));
     pcbIsKeyBold->setChecked(true);
     pcbIsUnderline->setChecked(true);
+    pcbTemplateBox = new QComboBox;
+    pcbTemplateBox->insertItems(0, TmpLoader.getTemplate().keys());
+    pcbTemplateBox->setCurrentText("线下模板_爱囡囡");
     phlFontSet->addWidget(plaFont);
     phlFontSet->addWidget(pfcFontType);
     phlFontSet->addWidget(psbFontSize);
     pvlCheckBoxLay->addWidget(pcbIsKeyBold);
     pvlCheckBoxLay->addWidget(pcbIsUnderline);
     phlFontSet->addLayout(pvlCheckBoxLay);
+    phlFontSet->addWidget(pcbTemplateBox);
 
     //setting default font
     pfGlobalFont = new QFont("微软雅黑",40);
@@ -238,6 +239,8 @@ void MainWindows::signalConnection()
     connect(ppbGenerate, SIGNAL(clicked(bool)), this, SLOT(generateAllImage()));
     connect(pcbIsBatchMode, SIGNAL(toggled(bool)), this, SLOT(batchModeChange(bool)));
     connect(this, SIGNAL(sendLog(QString)), this, SLOT(printLog(QString)));
+    connect(pcbTemplateBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(templateChange()));
+    connect(ppbResetGraph, SIGNAL(clicked(bool)), this, SLOT(modifyModeChange()));
 }
 
 void MainWindows::careBaby()
@@ -301,6 +304,11 @@ void MainWindows::careBaby()
             emit sendLog("<b><font color=\"blue\">❤嘿嘿嘿也算哟❤</font></b>");
             isFestival = true;
         }
+        //52
+        if(time.date().day() == 20)
+        {
+            emit sendLog("<b><font color=\"red\">520我爱你哟</font></b>");
+        }
         //母亲节
         if(time.date().day() == secSunday)
         {
@@ -354,7 +362,7 @@ void MainWindows::careBaby()
             emit sendLog("<b><font color=\"green\">你怎么可能会在国庆用这个东西呢</font></b>");
             emit sendLog("<b><font color=\"blue\">一定是你调皮就是想开了看看</font></b>");
             emit sendLog("<b><font color=\"aqua\">❤好吧，爱你~❤</font></b>");
-            isFestival = true;
+            //isFestival = true;
         }
         break;
     case 11:
@@ -443,6 +451,11 @@ MainWindows::MainWindows(QWidget *parent)
     : QMainWindow(parent)
 {
     loadSetting();
+
+    TmpLoader.loadTemplates();
+    pttTemplate = TmpLoader.getTemplate().value("线下模板_爱囡囡", nullptr);
+    Q_ASSERT(pttTemplate != nullptr);
+
     QWidget *central = new QWidget();
     // initialize windows
     // set window size
@@ -457,9 +470,12 @@ MainWindows::MainWindows(QWidget *parent)
 
     //set defualt output folder
     pleOutputPath->setText(outPath);
-
+    if( !TmpLoader.templateCount() )
+        QMessageBox::information(this, tr("Error"), tr("Can't find any template files."), QMessageBox::Ok);
     emit sendLog(tr("Initialize completed."));
     careBaby();
+    updateGraphicsContent();
+    pleAuthrorizer->setText(pttTemplate->qsAuthorizer);
 }
 
 MainWindows::~MainWindows()
@@ -490,24 +506,26 @@ MainWindows::~MainWindows()
 
 void MainWindows::updateGraphicsContent()
 {
+    /*local String*/
     QString textObject;
     QString textContent;
     QString textBrand;
     QString textLogo;
     QString textDate;
+    QString textString = pttTemplate->qsContent;
     //for html style
     QString checkStyle;
     QString checkStyleEnd;
-    //cat for size, whole <img height="[size]" align="middle" src="[src]"\>
+    //cat for size,  <img height="[size]" align="middle" src="[src]"\>
     QString logoStyle("<img height=\"%1\" align=\"middle\" src=\"");
     const QString logoStyleEnd("\">");
+    /*local String*/
 
     if( pcbIsKeyBold->isChecked() )
     {
         checkStyle = "<b>";
         checkStyleEnd = "</b>";
     }
-
     if( pcbIsUnderline->isChecked() )
     {
         checkStyle += "<u>";
@@ -515,11 +533,15 @@ void MainWindows::updateGraphicsContent()
     }
 
     textObject = checkStyle + strObject + checkStyleEnd;
+    textString.replace("%Object", textObject);
 
-    if( !strContent.isEmpty() )
-        textContent = QString("在 %1%2%3 上").arg(checkStyle).arg(strContent).arg(checkStyleEnd);
+//    if( !strContent.isEmpty() )
+//        textContent = QString("在 %1%2%3 上").arg(checkStyle).arg(strContent).arg(checkStyleEnd);
+    textContent = checkStyle + strContent + checkStyleEnd;
+    textString.replace("%Content", textContent);
 
     textBrand = checkStyle + strBrand + checkStyleEnd;
+    textString.replace("%Brand", textBrand);
 
     //Logo
     if( !pslLogosList->empty() )
@@ -543,12 +565,20 @@ void MainWindows::updateGraphicsContent()
         strEmtpySapceForDate += "&nbsp;";
     textDate = strEmtpySapceForDate + textDate;
 
+    /*
     //[!] BUG
     //When using chinese pinyin for long input, it will raise a abnormal issue, consume to many CPU times. Don't know why yet.
     //but problem located to QString() function.
+
     pgtiAuthrorizedContent->setHtml(
                 QString("<p style=\"text-indent:105px;\">兹授权 %1 %2 销售我司代理的 %3 品牌(系列)产品，于授权范围内负责售后等事宜。%4</p><br><p style=\"text-indent:0px;\">%5</p>")
                 .arg(textObject).arg(textContent).arg(textBrand).arg(textLogo).arg(textDate)
+                );
+                */
+
+    pgtiAuthrorizedContent->setHtml(
+                QString("<p style=\"text-indent:105px;\">%1 %2</p><br><p style=\"text-indent:0px;\">%3</p>")
+                .arg(textString).arg(textLogo).arg(textDate)
                 );
 }
 
@@ -640,23 +670,27 @@ void MainWindows::generateImage()
     //object part
     filename += strObject.left(5) + "_";
     //brand part
-    filename += strBrand + "_";
+    filename += strBrand.left(10) + "_";
     //content part
     if( strContent.isEmpty() )
         filename += "ALL_";
     else
         filename += strContent.left(5) += "_";
     //time part
-    filename += QDate::currentDate().toString("yyMMdd") + ".png";
+    filename += QDate::currentDate().toString("yyMMdd");\
+    //add path
+    filename = outPath + '/' + filename;
+    if( QFile::exists(filename+".png") )
+        filename += "(1)";
 
     QPainter painter(&output);
 
     painter.setRenderHint(QPainter::Antialiasing);
     pgsScene->render(&painter);
 
-    bool res = output.save(outPath + '/' + filename);
+    bool res = output.save(filename+".png");
     if(res)
-        emit sendLog(tr("File Saved: %1").arg(outPath + '/' + filename));
+        emit sendLog(tr("File Saved: %1").arg(filename));
     else
         emit sendLog(tr("Unexpected Error! Save failed."));
 }
@@ -740,6 +774,27 @@ void MainWindows::printLog(QString log)
     pteTextLog->insertHtml(QString("<font color=\"blue\">[%1]</font>:%2<br>").arg(QTime::currentTime().toString("hh:mm:ss")).arg(log));
 }
 
+void MainWindows::modifyModeChange()
+{
+    qDebug() << "TextItem Enable.";
+    isModifyMode = true;
+/*
+    ppbResetGraph->setEnabled(true);
+    ppbOpenLogos->setEnabled(false);
+    psbFontSize->setEnabled(false);
+    psbLogoSize->setEnabled(false);
+    pteBrandEdit->setEnabled(false);
+    pteContentEdit->setEnabled(false);
+    pteObjectEdit->setEnabled(false);*/
+}
+
+void MainWindows::templateChange()
+{
+    pttTemplate = TmpLoader.getTemplate().value(pcbTemplateBox->currentText());
+    updateGraphicsContent();
+    pleAuthrorizer->setText(pttTemplate->qsAuthorizer);
+}
+
 void MainWindows::openLogos()
 {
     QStringList files = QFileDialog::getOpenFileNames(
@@ -779,7 +834,8 @@ void MainWindows::openLogos()
 
 void MainWindows::currentLogoChange(int r)
 {
-    psbLogoSize->setValue( pilLogoSizeList->at(r) );
+    if( r >= 0 )    //when last logo delete, still emit currentChange signal with -1. and ->at() can't process this situation.
+        psbLogoSize->setValue( pilLogoSizeList->at(r) );
 }
 
 void MainWindows::logoSizeChange(int size)

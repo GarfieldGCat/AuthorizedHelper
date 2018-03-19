@@ -24,9 +24,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += main.cpp\
-        mainwindows.cpp
+        mainwindows.cpp \
+    templateloader.cpp
 
-HEADERS  += mainwindows.h
+HEADERS  += mainwindows.h \
+    templateloader.h \
+    sttemplate.h
 
 DISTFILES += \
     AuthorizedHelper.png
