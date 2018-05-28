@@ -104,7 +104,7 @@ void MainWindows::createSettingPage()
     pcbIsUnderline->setChecked(true);
     pcbTemplateBox = new QComboBox;
     pcbTemplateBox->insertItems(0, TmpLoader.getTemplate().keys());
-    pcbTemplateBox->setCurrentText("线下模板_爱囡囡");
+    pcbTemplateBox->setCurrentText("线下模板");
     phlFontSet->addWidget(plaFont);
     phlFontSet->addWidget(pfcFontType);
     phlFontSet->addWidget(psbFontSize);
@@ -178,8 +178,10 @@ void MainWindows::createSettingPage()
     QLabel *plaDate = new QLabel(tr("Date:"));
     plaDate->setFixedWidth(LABEL_SIZE);
     QLabel *plaDateTo = new QLabel(tr("To"));
-    pdeStartDate = new QDateEdit(QDate::currentDate());
-    pdeEndDate = new QDateEdit(QDate::currentDate().addYears(1));
+    QDate begin;
+    begin.setDate(QDate::currentDate().year(),1,1);
+    pdeStartDate = new QDateEdit(begin);
+    pdeEndDate = new QDateEdit(begin.addYears(1));
     phlDateSet->addWidget(plaDate);
     phlDateSet->addWidget(pdeStartDate);
     phlDateSet->addWidget(plaDateTo);
@@ -189,8 +191,12 @@ void MainWindows::createSettingPage()
     QLabel *plaAuthrorizer = new QLabel(tr("Authrorizer:"));
     plaAuthrorizer->setFixedWidth(LABEL_SIZE);
     pleAuthrorizer = new QLineEdit;
+    pcbAuthrorizer = new QComboBox;
+    pcbAuthrorizer->addItems(slAuthorizerList);
+    pleAuthrorizer->setText(pcbAuthrorizer->currentText());
     phlAuthrorizerSet->addWidget(plaAuthrorizer);
     phlAuthrorizerSet->addWidget(pleAuthrorizer);
+    phlAuthrorizerSet->addWidget(pcbAuthrorizer);
 
     //output path
     QLabel *plaPath = new QLabel(tr("Path:"));
@@ -240,6 +246,7 @@ void MainWindows::signalConnection()
     connect(pcbIsBatchMode, SIGNAL(toggled(bool)), this, SLOT(batchModeChange(bool)));
     connect(this, SIGNAL(sendLog(QString)), this, SLOT(printLog(QString)));
     connect(pcbTemplateBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(templateChange()));
+    connect(pcbAuthrorizer, &QComboBox::currentTextChanged, this, [&](QString t){this->pleAuthrorizer->setText(t);} );
     connect(ppbResetGraph, SIGNAL(clicked(bool)), this, SLOT(modifyModeChange()));
 }
 
@@ -435,8 +442,15 @@ QString MainWindows::catStringList(const QStringList *psl)
 void MainWindows::loadSetting()
 {
     psIniFile = new QSettings(QDir::currentPath()+"/Settings.ini",QSettings::IniFormat,this);
+    psIniFile->setIniCodec("System");
     outPath = psIniFile->value("MainSet/OutPath", QDir::currentPath()).toString();
     logoPath = psIniFile->value("MainSet/LogoPath", QDir::currentPath()).toString();
+
+    psIniFile->beginGroup("Authorizer");
+    QStringList authrorizerKeys = psIniFile->allKeys();
+    for( QString key : authrorizerKeys )
+        slAuthorizerList.push_back(psIniFile->value(key, "").toString());
+    psIniFile->endGroup();
 }
 
 void MainWindows::saveSetting()
@@ -453,7 +467,7 @@ MainWindows::MainWindows(QWidget *parent)
     loadSetting();
 
     TmpLoader.loadTemplates();
-    pttTemplate = TmpLoader.getTemplate().value("线下模板_爱囡囡", nullptr);
+    pttTemplate = TmpLoader.getTemplate().value("线下模板", nullptr);
     Q_ASSERT(pttTemplate != nullptr);
 
     QWidget *central = new QWidget();
@@ -475,7 +489,7 @@ MainWindows::MainWindows(QWidget *parent)
     emit sendLog(tr("Initialize completed."));
     careBaby();
     updateGraphicsContent();
-    pleAuthrorizer->setText(pttTemplate->qsAuthorizer);
+    emit authrorizerChange(pleAuthrorizer->text());
 }
 
 MainWindows::~MainWindows()
@@ -591,7 +605,9 @@ void MainWindows::fontTypeChange(QFont font)
 void MainWindows::fontSizeChange(int size)
 {
     pfGlobalFont->setPointSize(size);
+    pfAuthrorizerFont->setPointSize(size);
     pgtiAuthrorizedContent->setFont(*pfGlobalFont);
+    pgtiAuthrorizedCompany->setFont(*pfAuthrorizerFont);
 }
 
 void MainWindows::brandChange()
@@ -792,7 +808,7 @@ void MainWindows::templateChange()
 {
     pttTemplate = TmpLoader.getTemplate().value(pcbTemplateBox->currentText());
     updateGraphicsContent();
-    pleAuthrorizer->setText(pttTemplate->qsAuthorizer);
+//    pleAuthrorizer->setText(pttTemplate->qsAuthorizer);
 }
 
 void MainWindows::openLogos()

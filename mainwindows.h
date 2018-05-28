@@ -70,6 +70,7 @@ private:
     QSpinBox *psbLogoSize;
     QDateEdit *pdeStartDate;
     QDateEdit *pdeEndDate;
+    QComboBox *pcbAuthrorizer;
     QLineEdit *pleAuthrorizer;
     QLineEdit *pleOutputPath;
     QPushButton *ppbOpenPath;
@@ -84,6 +85,7 @@ private:
     //QList<QGraphicsPixmapItem> *pgpilAuthroizedLogoList;
 
     //Data
+    QStringList slAuthorizerList;
     QString strObject;
     QString strBrand;
     QString strContent;
